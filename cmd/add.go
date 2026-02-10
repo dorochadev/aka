@@ -22,7 +22,7 @@ The target can be:
   - URL (e.g., https://youtube.com)
   - SSH connection (e.g., user@host)
   - Shell command (e.g., "ls -la")`,
-	Args: cobra.ExactArgs(2),
+	Args: cobra.MinimumNArgs(2),
 	RunE: runAdd,
 }
 
@@ -37,7 +37,27 @@ func init() {
 
 func runAdd(cmd *cobra.Command, args []string) error {
 	shortname := args[0]
-	target := args[1]
+	// Collect all remaining args as potential targets
+	rawTargets := args[1:]
+
+	var targets []string
+	if len(rawTargets) == 1 && strings.Contains(rawTargets[0], ",") {
+		// Handle comma-separated list: aka add dev "VS Code,Safari"
+		split := strings.Split(rawTargets[0], ",")
+		for _, t := range split {
+			targets = append(targets, strings.TrimSpace(t))
+		}
+	} else {
+		// Handle space-separated args: aka add dev "VS Code" Safari
+		targets = rawTargets
+	}
+
+	// Determine if it's a stack or single launcher
+	isStack := len(targets) > 1
+	var target string
+	if !isStack {
+		target = targets[0]
+	}
 
 	if !isValidShortname(shortname) {
 		ui.PrintError("Invalid shortname. Use only alphanumeric characters, hyphens, and underscores.")
@@ -55,11 +75,17 @@ func runAdd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	launcherType := launcher.DetectLauncherType(target)
+	var launcherType launcher.LauncherType
+	if isStack {
+		launcherType = launcher.TypeStack
+	} else {
+		launcherType = launcher.DetectLauncherType(target)
+	}
 
 	metadata := &launcher.LauncherMetadata{
-		Type:   launcherType,
-		Target: target,
+		Type:    launcherType,
+		Target:  target,
+		Targets: targets,
 	}
 
 	envVars, _ := cmd.Flags().GetStringToString("env")
@@ -95,6 +121,12 @@ func runAdd(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	switch launcherType {
+	case launcher.TypeStack:
+		ui.SuccessBox(fmt.Sprintf("Created stack launcher '%s' with %d items", shortname, len(targets)))
+		for _, t := range targets {
+			ui.PrintResult("-", t)
+		}
+		ui.PrintExample("Launch all:", shortname)
 	case launcher.TypeURL:
 		ui.SuccessBox(fmt.Sprintf("Created URL launcher '%s' for %s", shortname, target))
 		ui.PrintExample("Open the URL:", shortname)

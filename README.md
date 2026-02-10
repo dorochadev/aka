@@ -12,6 +12,7 @@ A simple CLI tool to create launchers for your favorite applications, URLs, SSH 
 - **URL launchers** - Open websites in your default browser
 - **SSH launchers** - Connect to servers with saved credentials
 - **Command launchers** - Create shortcuts for shell commands
+- **Stack launchers** - Open multiple apps/URLs with one command
 - **Environment variables** - Set env vars for any launcher
 - **Shell completions** - Tab-complete launcher names and commands
 - **Simple management** - Add, remove, rename, and list launchers
@@ -58,6 +59,21 @@ server                    # Connects via SSH
 aka add ll "ls -lah"
 aka add ports "lsof -i -P"
 ll                        # Runs ls -lah
+```
+
+### Stack Launchers
+
+Open multiple apps or URLs with a single command:
+
+```bash
+# Comma-separated list
+aka add dev "VS Code,iTerm,Safari"
+aka add work "Slack,https://mail.google.com,Notion"
+
+# Space-separated arguments
+aka add stack Spotify Discord Chrome
+
+dev                       # Opens all 3 apps at once
 ```
 
 ### Environment Variables

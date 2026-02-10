@@ -7,11 +7,13 @@ const (
 	TypeURL         LauncherType = "url"
 	TypeSSH         LauncherType = "ssh"
 	TypeCommand     LauncherType = "cmd"
+	TypeStack       LauncherType = "stack"
 )
 
 type LauncherMetadata struct {
 	Type      LauncherType      `json:"type"`
-	Target    string            `json:"target"`
+	Target    string            `json:"target,omitempty"`  // Legacy single target
+	Targets   []string          `json:"targets,omitempty"` // For stack type
 	Env       map[string]string `json:"env,omitempty"`
 	SSHConfig *SSHConfig        `json:"ssh_config,omitempty"`
 }

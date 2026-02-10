@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dorochadev/aka/launcher"
 	"github.com/dorochadev/aka/ui"
@@ -42,10 +43,22 @@ func runList(cmd *cobra.Command, args []string) error {
 	rows := make([][]string, len(launchers))
 	for i, l := range launchers {
 		launcherType := "app"
+		displayTarget := l.Target
+
 		if meta, ok := metadata[l.Name]; ok && meta != nil {
 			launcherType = string(meta.Type)
+
+			// For stacks, show the list of targets
+			if meta.Type == launcher.TypeStack && len(meta.Targets) > 0 {
+				targetShort := strings.Join(meta.Targets, ", ")
+				if len(targetShort) > 50 {
+					targetShort = targetShort[:47] + "..."
+				}
+				displayTarget = targetShort
+			}
 		}
-		rows[i] = []string{l.Name, launcherType, "", l.Target}
+
+		rows[i] = []string{l.Name, launcherType, "", displayTarget}
 	}
 
 	fmt.Println()
