@@ -1,14 +1,22 @@
 # aka
 
-Create short commands to launch GUI applications.
+A simple CLI tool to create launchers for your favorite applications, URLs, SSH connections, and commands.
 
-## Install
+## What it does
 
-```bash
-go install github.com/dorochadev/aka@latest
-```
+`aka` creates shortcut commands in `~/bin` that launch applications, open URLs, connect to servers, or run shell commands. Instead of typing long commands or searching for apps, just type a short alias.
 
-Or build from source:
+## Features
+
+- **Application launchers** - Open GUI apps with a short command
+- **URL launchers** - Open websites in your default browser
+- **SSH launchers** - Connect to servers with saved credentials
+- **Command launchers** - Create shortcuts for shell commands
+- **Environment variables** - Set env vars for any launcher
+- **Shell completions** - Tab-complete launcher names and commands
+- **Simple management** - Add, remove, rename, and list launchers
+
+## Installation
 
 ```bash
 git clone https://github.com/dorochadev/aka.git
@@ -19,27 +27,126 @@ sudo mv aka /usr/local/bin/
 
 ## Quick Start
 
+### Application Launchers
+
 ```bash
-# Create a launcher
 aka add safari Safari
-aka add code "Visual Studio Code"
+aka add code "VS Code"
+safari                    # Opens Safari
+code myproject.code       # Opens VS Code with file
+```
 
-# Use it
-safari
-code myproject.txt
+### URL Launchers
 
-# Manage launchers
-aka list
-aka rename safari web
-aka remove web
+```bash
+aka add gh https://github.com
+aka add youtube https://youtube.com
+gh                        # Opens GitHub in browser
+```
+
+### SSH Launchers
+
+```bash
+aka add server user@192.168.1.1
+aka add prod user@prod.com --save-password  # Prompts for password securely
+server                    # Connects via SSH
+```
+
+### Command Launchers
+
+```bash
+aka add ll "ls -lah"
+aka add ports "lsof -i -P"
+ll                        # Runs ls -lah
+```
+
+### Environment Variables
+
+```bash
+aka add dev "VS Code" --env "DEBUG=1,ENV=development"
+dev                       # Opens VS Code with env vars set
+```
+
+## Shell Completions
+
+Install completions with one command:
+
+```bash
+aka completion install
+# Auto-detects your shell (zsh/bash)
+# Installs completions automatically
+# Restart terminal or source your shell config
+```
+
+Now you can tab-complete:
+
+```bash
+aka <TAB>                 # Shows: add, remove, list, etc.
+aka remove <TAB>          # Shows your launcher names
 ```
 
 ## Commands
 
-- `aka add <name> <app>` - Create a new launcher
-- `aka list` - Show all launchers
-- `aka remove <name>` - Delete a launcher
-- `aka rename <old> <new>` - Rename a launcher
+```bash
+aka add <name> <target>              # Create a launcher
+aka remove <name>                    # Remove a launcher
+aka list                             # List all launchers
+aka rename <old> <new>               # Rename a launcher
+aka open <name> [files...]           # Open launcher with files
+aka completion install               # Install shell completions
+```
+
+### Flags
+
+```bash
+--save-password          # Prompt for SSH password (secure)
+--env key=value          # Set environment variables
+--port <number>          # SSH port (default: 22)
+--key <path>             # SSH key file
+-f, --force              # Overwrite without confirmation
+```
+
+## Examples
+
+```bash
+# Create launchers
+aka add safari Safari
+aka add gh https://github.com/dorochadev
+aka add server root@192.168.1.1 --port 2222
+aka add deploy "ssh user@prod && cd /app && git pull"
+
+# Use them
+safari
+gh
+server
+deploy
+
+# Manage launchers
+aka list
+aka rename server prod-server
+aka remove old-launcher
+```
+
+## How it works
+
+`aka` creates executable shell scripts in `~/bin` that:
+
+- Open applications with `open -a` (macOS) or `xdg-open` (Linux)
+- Open URLs in your default browser
+- Connect via SSH with optional `sshpass` for passwords
+- Execute shell commands
+
+Launcher configuration is stored in `~/.config/aka/launchers.json`.
+
+## Requirements
+
+- Go 1.21+ (for building)
+- macOS or Linux
+- `sshpass` (optional, for SSH password storage)
+
+## License
+
+MIT
 
 ## Setup
 

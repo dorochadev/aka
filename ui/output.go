@@ -7,7 +7,7 @@ import (
 
 // PrintSuccess prints a success message
 func PrintSuccess(message string) {
-	CurrentTheme.Success.Printf("%s %s\n", IconSuccess, message)
+	SuccessBox(message)
 }
 
 // PrintError prints an error message to stderr
@@ -17,15 +17,15 @@ func PrintError(message string) {
 
 // PrintWarning prints a warning message
 func PrintWarning(message string) {
-	CurrentTheme.Warning.Printf("%s %s\n", IconWarning, message)
+	WarningBox(message)
 }
 
 // PrintInfo prints an info message
 func PrintInfo(message string) {
-	CurrentTheme.Info.Printf("%s %s\n", IconInfo, message)
+	InfoBox(message)
 }
 
-// PrintCommand prints a command in muted color
+// PrintCommand prints a command example
 func PrintCommand(command string) {
 	CurrentTheme.Muted.Printf("  $ %s\n", command)
 }

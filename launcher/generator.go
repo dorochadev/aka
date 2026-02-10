@@ -7,12 +7,13 @@ import (
 	"strings"
 )
 
+var sshPattern = regexp.MustCompile(`^[a-zA-Z0-9_.-]+@[\w\.\-]+$`)
+
 func DetectLauncherType(target string) LauncherType {
 	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
 		return TypeURL
 	}
 
-	sshPattern := regexp.MustCompile(`^[a-zA-Z0-9_-]+@[\w\.\-]+$`)
 	if sshPattern.MatchString(target) {
 		return TypeSSH
 	}
@@ -55,27 +56,27 @@ func generateURLScript(url string) string {
 }
 
 func generateSSHScript(target string, config *SSHConfig) string {
-	var cmd string
+	var flags []string
 
-	if config != nil && config.Password != "" {
-		port := config.Port
-		if port == 0 {
-			port = 22
-		}
-
-		keyFlag := ""
+	if config != nil {
 		if config.KeyFile != "" {
-			keyFlag = fmt.Sprintf(` -i "%s"`, config.KeyFile)
+			flags = append(flags, fmt.Sprintf(`-i "%s"`, config.KeyFile))
 		}
-
-		portFlag := ""
-		if port != 22 {
-			portFlag = fmt.Sprintf(" -p %d", port)
+		if config.Port != 0 && config.Port != 22 {
+			flags = append(flags, fmt.Sprintf("-p %d", config.Port))
 		}
+	}
 
-		cmd = fmt.Sprintf(`sshpass -p '%s' ssh%s%s %s`, config.Password, keyFlag, portFlag, target)
+	flagStr := ""
+	if len(flags) > 0 {
+		flagStr = " " + strings.Join(flags, " ")
+	}
+
+	var cmd string
+	if config != nil && config.Password != "" {
+		cmd = fmt.Sprintf(`sshpass -p '%s' ssh%s %s`, config.Password, flagStr, target)
 	} else {
-		cmd = fmt.Sprintf(`ssh %s`, target)
+		cmd = fmt.Sprintf(`ssh%s %s`, flagStr, target)
 	}
 
 	return fmt.Sprintf(`#!/bin/sh

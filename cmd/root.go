@@ -44,21 +44,15 @@ func init() {
 	rootCmd.SetHelpFunc(customHelp)
 
 	// Set custom usage template for all commands
-	cobra.AddTemplateFunc("styleUsage", styleUsage)
-	cobra.AddTemplateFunc("styleFlags", styleFlags)
+	cobra.AddTemplateFunc("styleUsage", styleText)
+	cobra.AddTemplateFunc("styleFlags", styleText)
 	rootCmd.SetUsageTemplate(getUsageTemplate())
 
 	// Set custom help function for all subcommands
 	rootCmd.PersistentFlags().BoolP("help", "h", false, "Show help for command")
 }
 
-// styleUsage returns styled usage text
-func styleUsage(s string) string {
-	return ui.CurrentTheme.Body.Sprint(s)
-}
-
-// styleFlags returns styled flag text
-func styleFlags(s string) string {
+func styleText(s string) string {
 	return ui.CurrentTheme.Body.Sprint(s)
 }
 

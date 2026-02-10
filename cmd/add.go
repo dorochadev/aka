@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/dorochadev/aka/launcher"
 	"github.com/dorochadev/aka/ui"
@@ -112,8 +113,8 @@ func runAdd(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	if !launcher.IsInPath() {
-		if ui.Confirm("Reload your shell to use the launcher now?") {
-			reloadShell()
+		if ui.Confirm("Add launcher directory to your PATH?") {
+			printReloadInstructions()
 		} else {
 			ui.PrintInfo("Run 'source ~/.zshrc' or restart your terminal to use the launcher.")
 			fmt.Println()
@@ -123,25 +124,23 @@ func runAdd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func reloadShell() {
+func printReloadInstructions() {
 	shell := os.Getenv("SHELL")
 
 	var configFile string
-	switch shell {
-	case "/bin/zsh", "/usr/bin/zsh":
+	switch {
+	case strings.Contains(shell, "zsh"):
 		configFile = "~/.zshrc"
-	case "/bin/bash", "/usr/bin/bash":
+	case strings.Contains(shell, "bash"):
 		configFile = "~/.bashrc"
 	default:
 		configFile = "your shell config"
 	}
 
 	fmt.Println()
-	ui.PrintInfo("To activate the launcher in your current shell, run:")
+	ui.PrintInfo("To activate the launcher, run:")
 	fmt.Println()
 	ui.PrintCommand(fmt.Sprintf("source %s", configFile))
-	fmt.Println()
-	ui.PrintInfo("Or simply restart your terminal.")
 	fmt.Println()
 }
 

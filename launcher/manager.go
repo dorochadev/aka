@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
@@ -70,6 +69,15 @@ func Rename(oldName, newName string) error {
 		return fmt.Errorf("failed to rename launcher: %w", err)
 	}
 
+	store, err := LoadMetadata()
+	if err == nil {
+		if meta, ok := store[oldName]; ok {
+			delete(store, oldName)
+			store[newName] = meta
+			_ = SaveMetadata(store)
+		}
+	}
+
 	return nil
 }
 
@@ -112,7 +120,7 @@ func List() ([]LauncherInfo, error) {
 	return launchers, nil
 }
 
-// extractTarget reads a launcher file and extracts the target application name
+// extractTarget parses a launcher script to extract the target (legacy fallback for launchers without metadata)
 func extractTarget(path string) (string, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
@@ -122,16 +130,36 @@ func extractTarget(path string) (string, error) {
 	lines := strings.Split(string(content), "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "export ") {
+			continue
+		}
 
-		if runtime.GOOS == "darwin" {
-			// Look for: open -a "AppName" "$@"
-			if strings.Contains(line, "open -a") {
-				parts := strings.Split(line, "\"")
-				if len(parts) >= 2 {
-					return parts[1], nil
-				}
+		// open -a "AppName" or open "URL"
+		if strings.HasPrefix(line, "open") {
+			parts := strings.Split(line, "\"")
+			if len(parts) >= 2 {
+				return parts[1], nil
 			}
 		}
+
+		// xdg-open "URL"
+		if strings.HasPrefix(line, "xdg-open") {
+			parts := strings.Split(line, "\"")
+			if len(parts) >= 2 {
+				return parts[1], nil
+			}
+		}
+
+		// ssh or sshpass command
+		if strings.HasPrefix(line, "ssh") {
+			fields := strings.Fields(line)
+			if len(fields) > 0 {
+				return fields[len(fields)-1], nil
+			}
+		}
+
+		// Anything else is a command
+		return line, nil
 	}
 
 	return "unknown", nil
