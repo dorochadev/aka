@@ -11,12 +11,16 @@ import (
 )
 
 var addCmd = &cobra.Command{
-	Use:   "add <shortname> <application>",
+	Use:   "add <shortname> <target>",
 	Short: "Create a new launcher",
-	Long: `Create a new launcher that opens the specified application.
+	Long: `Create a new launcher for an application, URL, SSH connection, or command.
 
 The shortname should be alphanumeric and will become the command you type.
-The application name should match the name of the GUI application.`,
+The target can be:
+  - Application name (e.g., "Safari", "VS Code")
+  - URL (e.g., https://youtube.com)
+  - SSH connection (e.g., user@host)
+  - Shell command (e.g., "ls -la")`,
 	Args: cobra.ExactArgs(2),
 	RunE: runAdd,
 }
@@ -24,11 +28,15 @@ The application name should match the name of the GUI application.`,
 func init() {
 	rootCmd.AddCommand(addCmd)
 	addCmd.Flags().BoolP("force", "f", false, "Overwrite existing launcher without confirmation")
+	addCmd.Flags().Bool("save-password", false, "Prompt to save SSH password securely")
+	addCmd.Flags().StringToString("env", nil, "Environment variables (key=value)")
+	addCmd.Flags().IntP("port", "", 22, "SSH port")
+	addCmd.Flags().StringP("key", "k", "", "SSH key file path")
 }
 
 func runAdd(cmd *cobra.Command, args []string) error {
 	shortname := args[0]
-	appName := args[1]
+	target := args[1]
 
 	if !isValidShortname(shortname) {
 		ui.PrintError("Invalid shortname. Use only alphanumeric characters, hyphens, and underscores.")
@@ -46,16 +54,61 @@ func runAdd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if err := launcher.Create(shortname, appName); err != nil {
+	launcherType := launcher.DetectLauncherType(target)
+
+	metadata := &launcher.LauncherMetadata{
+		Type:   launcherType,
+		Target: target,
+	}
+
+	envVars, _ := cmd.Flags().GetStringToString("env")
+	if len(envVars) > 0 {
+		metadata.Env = envVars
+	}
+
+	if launcherType == launcher.TypeSSH {
+		savePassword, _ := cmd.Flags().GetBool("save-password")
+		port, _ := cmd.Flags().GetInt("port")
+		keyFile, _ := cmd.Flags().GetString("key")
+
+		metadata.SSHConfig = &launcher.SSHConfig{
+			Port:    port,
+			KeyFile: keyFile,
+		}
+
+		if savePassword {
+			password, err := ui.PromptPassword(fmt.Sprintf("🔒 Enter SSH password for %s (will be stored securely): ", target))
+			if err != nil {
+				ui.PrintError(fmt.Sprintf("Failed to read password: %v", err))
+				return err
+			}
+			metadata.SSHConfig.Password = password
+		}
+	}
+
+	if err := launcher.Create(shortname, metadata); err != nil {
 		ui.PrintError(fmt.Sprintf("Failed to create launcher: %v", err))
 		return err
 	}
 
 	fmt.Println()
-	ui.SuccessBox(fmt.Sprintf("Created launcher '%s' for %s", shortname, appName))
 
-	ui.PrintExample("Open the application:", shortname)
-	ui.PrintExample("Open with a file:", fmt.Sprintf("%s document.pdf", shortname))
+	switch launcherType {
+	case launcher.TypeURL:
+		ui.SuccessBox(fmt.Sprintf("Created URL launcher '%s' for %s", shortname, target))
+		ui.PrintExample("Open the URL:", shortname)
+	case launcher.TypeSSH:
+		ui.SuccessBox(fmt.Sprintf("Created SSH launcher '%s' for %s", shortname, target))
+		ui.PrintExample("Connect via SSH:", shortname)
+	case launcher.TypeCommand:
+		ui.SuccessBox(fmt.Sprintf("Created command launcher '%s'", shortname))
+		ui.PrintExample("Run the command:", shortname)
+	default:
+		ui.SuccessBox(fmt.Sprintf("Created launcher '%s' for %s", shortname, target))
+		ui.PrintExample("Open the application:", shortname)
+		ui.PrintExample("Open with a file:", fmt.Sprintf("%s document.pdf", shortname))
+	}
+
 	fmt.Println()
 
 	if !launcher.IsInPath() {
@@ -70,7 +123,6 @@ func runAdd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// reloadShell provides instructions to reload the shell configuration
 func reloadShell() {
 	shell := os.Getenv("SHELL")
 
@@ -93,7 +145,6 @@ func reloadShell() {
 	fmt.Println()
 }
 
-// isValidShortname checks if a shortname contains only valid characters
 func isValidShortname(name string) bool {
 	matched, _ := regexp.MatchString(`^[a-zA-Z0-9_-]+$`, name)
 	return matched

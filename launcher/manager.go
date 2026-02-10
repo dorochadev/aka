@@ -30,16 +30,20 @@ func Exists(name string) bool {
 	return err == nil
 }
 
-func Create(name, appName string) error {
+func Create(name string, metadata *LauncherMetadata) error {
 	if err := EnsureLauncherDir(); err != nil {
 		return fmt.Errorf("failed to create launcher directory: %w", err)
 	}
 
 	path := filepath.Join(GetLauncherDir(), name)
-	script := GenerateScript(appName)
+	script := GenerateScript(metadata.Target, metadata)
 
 	if err := os.WriteFile(path, []byte(script), 0755); err != nil {
 		return fmt.Errorf("failed to write launcher file: %w", err)
+	}
+
+	if err := SetMetadata(name, metadata); err != nil {
+		return fmt.Errorf("failed to save metadata: %w", err)
 	}
 
 	return nil
@@ -50,6 +54,11 @@ func Remove(name string) error {
 	if err := os.Remove(path); err != nil {
 		return fmt.Errorf("failed to remove launcher: %w", err)
 	}
+
+	if err := DeleteMetadata(name); err != nil {
+		return fmt.Errorf("failed to remove metadata: %w", err)
+	}
+
 	return nil
 }
 
@@ -79,15 +88,19 @@ func List() ([]LauncherInfo, error) {
 		return nil, fmt.Errorf("failed to read launcher directory: %w", err)
 	}
 
+	metadata, _ := LoadMetadata()
+
 	var launchers []LauncherInfo
 	for _, entry := range entries {
 		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
 			continue
 		}
 
-		target, err := extractTarget(filepath.Join(dir, entry.Name()))
-		if err != nil {
-			continue
+		target := "unknown"
+		if meta, ok := metadata[entry.Name()]; ok && meta != nil {
+			target = meta.Target
+		} else {
+			target, _ = extractTarget(filepath.Join(dir, entry.Name()))
 		}
 
 		launchers = append(launchers, LauncherInfo{

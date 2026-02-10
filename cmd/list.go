@@ -36,10 +36,16 @@ func runList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	headers := []string{"Command", ui.IconArrow, "Application"}
+	metadata, _ := launcher.LoadMetadata()
+
+	headers := []string{"Command", "Type", ui.IconArrow, "Target"}
 	rows := make([][]string, len(launchers))
 	for i, l := range launchers {
-		rows[i] = []string{l.Name, "", l.Target}
+		launcherType := "app"
+		if meta, ok := metadata[l.Name]; ok && meta != nil {
+			launcherType = string(meta.Type)
+		}
+		rows[i] = []string{l.Name, launcherType, "", l.Target}
 	}
 
 	fmt.Println()

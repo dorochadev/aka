@@ -2,8 +2,11 @@ package ui
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
+
+	"golang.org/x/term"
 )
 
 // Prompt asks a question and returns the user's input
@@ -35,4 +38,15 @@ func Confirm(question string) bool {
 	answer, _ := reader.ReadString('\n')
 	answer = strings.ToLower(strings.TrimSpace(answer))
 	return answer == "y" || answer == "yes"
+}
+
+// PromptPassword securely prompts for a password without echoing
+func PromptPassword(prompt string) (string, error) {
+	fmt.Print(prompt)
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println()
+	if err != nil {
+		return "", err
+	}
+	return string(password), nil
 }
